@@ -1,3 +1,8 @@
 # Managed by tacplus — do not edit IDs manually.
 registries:
     - https://github.com/tacplus-dev/registry.git
+services:
+    - name: pigeon
+      id: 107
+      contract: https://github.com/tacplus-dev/pigeon.git
+      visibility: public
