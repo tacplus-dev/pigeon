@@ -1,0 +1,15 @@
+kind: service
+language: go
+src: proto
+# The pigeon talks to its dog on the coop's thread topic, which publishes
+# through the eventbus broker.
+depends:
+  - coop
+  - eventbus
+# pkg is derived from go.mod (the org name has a hyphen, which pkg cannot carry).
+# A derived Go package is <module>/tacplus, so the output segment must be "tacplus".
+output-dir: tacplus
+output-name: tacplus
+header: |
+  Copyright (c) 2026 Jody Scott
+  SPDX-License-Identifier: Apache-2.0
