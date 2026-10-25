@@ -18,14 +18,9 @@ import (
 
 	"github.com/tacplus-dev/pigeon/internal/host"
 	loggerchassis "github.com/tacplus-dev/pigeon/tacplus/chassis/logger"
-	"github.com/tacplus-dev/pigeon/tacplus/chassis/servicemanager"
 	"github.com/tacplus-dev/pigeon/tacplus/chassis/token"
 	sm "github.com/tacplus-dev/pigeon/tacplus/s2sm"
-	fe "github.com/tacplus-dev/pigeon/tacplus/s2sm/grpc/servers/services/pigeon"
-	pb "github.com/tacplus-dev/pigeon/tacplus/types/services/pigeon"
 	healthreport_pb "github.com/tacplus-dev/pigeon/tacplus/types/sys/healthreport"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func main() {
@@ -96,29 +91,12 @@ func run() error {
 	return s.Run(server{})
 }
 
-// server is the generated handler: a pigeon serves no RPC of its own, and its
-// config state is the config store's (kernel's), not its.
+// server is the generated handler. A pigeon is a workload: it serves no RPC
+// and holds no config root, so the handler is health and shutdown.
 type server struct{}
 
-func (server) PigeonConfigStateConfig(*pb.Config) error { return nil }
-func (server) PigeonConfigStateGrpcImpl() fe.PigeonConfigStateServiceHandler {
-	return notHosted{}
-}
 func (server) Shutdown(context.Context) {}
 func (server) CheckHealth() healthreport_pb.InstanceStatus {
 	return healthreport_pb.InstanceStatus_INSTANCE_STATUS_HEALTHY
 }
-
-var errNotHosted = status.Error(codes.Unimplemented, "the pigeon's config state is served by the config store (kernel), not by the pigeon")
-
-type notHosted struct{}
-
-func (notHosted) GetConfig(context.Context, *servicemanager.Caller) (*pb.Config, error) {
-	return nil, errNotHosted
-}
-func (notHosted) SetConfig(context.Context, *servicemanager.Caller, *pb.Config) (*pb.Config, error) {
-	return nil, errNotHosted
-}
-func (notHosted) WatchConfig(*servicemanager.Caller, grpc.ServerStreamingServer[pb.Config]) error {
-	return errNotHosted
-}
+func (server) RegisterAdditionalServices(grpc.ServiceRegistrar) {}
