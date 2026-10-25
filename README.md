@@ -1,6 +1,7 @@
-# pigeon
+# pigeonhost
 
-The generic pigeon host, a tacplus platform service (registry id 107). It never runs as a
+The generic pigeon host, a tacplus platform service (registry `pigeonhost`, id 107; the
+protocol it speaks is package `pigeon`, in the coop's `shared/pigeon.proto`). It never runs as a
 Deployment: the coop (github.com/tacplus-dev/coop) creates one Kubernetes Job per pigeon with
 this image, an identity kernel minted for the run (`<service>/workloads/pigeon-<run_id>`, a
 bootstrap token in the Job's Secret, `KERNEL_BOOTSTRAP_TOKEN_FILE`), and the run in its

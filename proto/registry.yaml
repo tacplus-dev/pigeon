@@ -2,7 +2,7 @@
 registries:
     - https://github.com/tacplus-dev/registry.git
 services:
-    - name: pigeon
+    - name: pigeonhost
       id: 107
       contract: https://github.com/tacplus-dev/pigeon.git
       visibility: public

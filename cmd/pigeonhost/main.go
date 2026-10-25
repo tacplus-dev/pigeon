@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Jody Scott
 // SPDX-License-Identifier: Apache-2.0
 
-// pigeon is the generic pigeon host: the Job the coop creates for one run.
+// pigeonhost is the generic pigeon host: the Job the coop creates for one run.
 // It bootstraps from the identity the coop minted (KERNEL_BOOTSTRAP_TOKEN_FILE),
 // learns its run from the environment the coop set, and lives on its thread.
 package main
