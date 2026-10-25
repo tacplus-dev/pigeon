@@ -43,8 +43,8 @@ type Run struct {
 // Host is one pigeon.
 type Host struct {
 	Run Run
-	// Self is this pigeon's SPIFFE id, from its own token: the sender of its
-	// messages.
+	// Self is this pigeon's SPIFFE id, from its own token, for the log; the
+	// sender of its messages is eventbus's to stamp.
 	Self    string
 	Publish func(context.Context, *coop_pb.PigeonMessage) error
 	Kinds   map[string]Kind
@@ -107,8 +107,10 @@ func (h *Host) OnMessage(ctx context.Context, m *coop_pb.PigeonMessage, _ *eb_pb
 	default:
 		return nil
 	}
-	if m.GetSender() != h.Run.Caller {
-		zap.L().Warn("dropping a task from a sender that is not this run's dog", zap.String("sender", m.GetSender()))
+	// spiffe_id is stamped by eventbus from the publisher's token; a dog
+	// cannot claim another's identity.
+	if m.GetSpiffeId() != h.Run.Caller {
+		zap.L().Warn("dropping a task from a sender that is not this run's dog", zap.String("sender", m.GetSpiffeId()))
 		return nil
 	}
 	var to pigeon_pb.ToPigeon
@@ -155,6 +157,6 @@ func (h *Host) say(ctx context.Context, body *pigeon_pb.FromPigeon) error {
 	h.mu.Unlock()
 	return h.Publish(ctx, &coop_pb.PigeonMessage{
 		RunId: h.Run.RunID, ThreadId: h.Run.ThreadID, Direction: coop_pb.Direction_DIRECTION_FROM_PIGEON, Kind: h.Run.Kind,
-		Seq: seq, Body: raw, TenantNamespace: h.Run.Tenant, SentMs: h.now().UnixMilli(), Sender: h.Self,
+		Seq: seq, Body: raw, TenantNamespace: h.Run.Tenant, SentMs: h.now().UnixMilli(),
 	})
 }

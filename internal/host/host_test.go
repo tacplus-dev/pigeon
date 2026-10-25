@@ -37,7 +37,7 @@ func task(t *testing.T, sender, kind string, req []byte) *coop_pb.PigeonMessage 
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &coop_pb.PigeonMessage{RunId: "01run", ThreadId: "01run", Direction: coop_pb.Direction_DIRECTION_TO_PIGEON, Kind: "echo.ping", Seq: 1, Body: body, TenantNamespace: "/tenants/acme", Sender: sender}
+	return &coop_pb.PigeonMessage{RunId: "01run", ThreadId: "01run", Direction: coop_pb.Direction_DIRECTION_TO_PIGEON, Kind: "echo.ping", Seq: 1, Body: body, TenantNamespace: "/tenants/acme", SpiffeId: sender}
 }
 
 func from(t *testing.T, m *coop_pb.PigeonMessage) *pigeon_pb.FromPigeon {
@@ -72,7 +72,7 @@ func TestEchoRoundTrip(t *testing.T) {
 	if string(r.GetResult()) != "hello" || r.GetStatus() != pigeon_pb.ResultStatus_RESULT_STATUS_OK || r.GetModeUsed() != pigeon_pb.RunMode_RUN_MODE_SCRIPT {
 		t.Fatalf("result %v", r)
 	}
-	if m.GetDirection() != coop_pb.Direction_DIRECTION_FROM_PIGEON || m.GetSender() != self || m.GetSeq() != 2 || m.GetTenantNamespace() != "/tenants/acme" || m.GetRunId() != "01run" {
+	if m.GetDirection() != coop_pb.Direction_DIRECTION_FROM_PIGEON || m.GetSpiffeId() != "" || m.GetSeq() != 2 || m.GetTenantNamespace() != "/tenants/acme" || m.GetRunId() != "01run" {
 		t.Fatalf("envelope %v", m)
 	}
 }
