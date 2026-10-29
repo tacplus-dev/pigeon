@@ -1,6 +1,6 @@
 kind: service
 # The compiler floor: the looper runs the latest patch of this MAJOR.MINOR.
-tacplus: "2.4"
+tacplus: "2.5"
 language: go
 src: proto
 # The pigeon talks to its dog on the coop's thread topic, which publishes
