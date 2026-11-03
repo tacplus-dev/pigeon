@@ -78,7 +78,15 @@ func (h *Host) now() time.Time {
 }
 
 // Ready says Ready on the thread, once: the coop marks the run RUNNING on it.
+// This is the startup Ready, said before any task, so it carries no trace_id.
 func (h *Host) Ready(ctx context.Context) error {
+	// trace: unrelated: startup Ready, said before any task
+	return h.sayReady(ctx, "")
+}
+
+// sayReady says Ready once, with the trace_id of the task that caused it, if
+// a task did.
+func (h *Host) sayReady(ctx context.Context, traceID string) error {
 	h.mu.Lock()
 	if h.ready {
 		h.mu.Unlock()
@@ -86,12 +94,12 @@ func (h *Host) Ready(ctx context.Context) error {
 	}
 	h.ready = true
 	h.mu.Unlock()
-	return h.say(ctx, &pigeon_pb.FromPigeon{Body: &pigeon_pb.FromPigeon_Ready{Ready: &pigeon_pb.Ready{}}})
+	return h.say(ctx, traceID, &pigeon_pb.FromPigeon{Body: &pigeon_pb.FromPigeon_Ready{Ready: &pigeon_pb.Ready{}}})
 }
 
 // OnMessage is the subscription to the coop's topic. Only this run's thread
 // matters, and on it only the dog's TO_PIGEON messages and the coop's word
-// that the run ended.
+// that the run ended. Every message a task causes carries its trace_id.
 func (h *Host) OnMessage(ctx context.Context, m *coop_pb.PigeonMessage, _ *eb_pb.RecordMeta) error {
 	if m.GetRunId() != h.Run.RunID {
 		return nil
@@ -113,40 +121,43 @@ func (h *Host) OnMessage(ctx context.Context, m *coop_pb.PigeonMessage, _ *eb_pb
 		zap.L().Warn("dropping a task from a sender that is not this run's dog", zap.String("sender", m.GetSpiffeId()))
 		return nil
 	}
+	traceID := m.GetTraceId()
 	var to pigeon_pb.ToPigeon
 	if err := proto.Unmarshal(m.GetBody(), &to); err != nil {
-		return h.fail(ctx, pigeon_pb.FailureCode_FAILURE_CODE_INVALID_TASK, "message body is not a ToPigeon: "+err.Error())
+		return h.fail(ctx, traceID, pigeon_pb.FailureCode_FAILURE_CODE_INVALID_TASK, "message body is not a ToPigeon: "+err.Error())
 	}
 	task := to.GetTask()
 	if task == nil {
 		return nil // an Answer or a Cancel: this host asks no questions and a cancel is the coop's to end
 	}
-	if err := h.Ready(ctx); err != nil {
+	if err := h.sayReady(ctx, traceID); err != nil {
 		return err
 	}
 	kind, ok := h.Kinds[task.GetKind()]
 	if !ok || task.GetKind() != h.Run.Kind {
-		return h.fail(ctx, pigeon_pb.FailureCode_FAILURE_CODE_INVALID_TASK,
+		return h.fail(ctx, traceID, pigeon_pb.FailureCode_FAILURE_CODE_INVALID_TASK,
 			fmt.Sprintf("task names kind %q; this pigeon is a %s", task.GetKind(), h.Run.Kind))
 	}
 	result, err := kind(ctx, task)
 	if err != nil {
-		return h.fail(ctx, pigeon_pb.FailureCode_FAILURE_CODE_SCRIPT_FAILED, err.Error())
+		return h.fail(ctx, traceID, pigeon_pb.FailureCode_FAILURE_CODE_SCRIPT_FAILED, err.Error())
 	}
 	if result.GetModeUsed() == pigeon_pb.RunMode_RUN_MODE_UNSPECIFIED {
 		result.ModeUsed = pigeon_pb.RunMode_RUN_MODE_SCRIPT
 	}
-	return h.say(ctx, &pigeon_pb.FromPigeon{Body: &pigeon_pb.FromPigeon_Result{Result: result}})
+	return h.say(ctx, traceID, &pigeon_pb.FromPigeon{Body: &pigeon_pb.FromPigeon_Result{Result: result}})
 }
 
-func (h *Host) fail(ctx context.Context, code pigeon_pb.FailureCode, detail string) error {
-	return h.say(ctx, &pigeon_pb.FromPigeon{Body: &pigeon_pb.FromPigeon_Result{Result: &pigeon_pb.PigeonResult{
+func (h *Host) fail(ctx context.Context, traceID string, code pigeon_pb.FailureCode, detail string) error {
+	return h.say(ctx, traceID, &pigeon_pb.FromPigeon{Body: &pigeon_pb.FromPigeon_Result{Result: &pigeon_pb.PigeonResult{
 		Kind: h.Run.Kind, ModeUsed: pigeon_pb.RunMode_RUN_MODE_SCRIPT, Status: pigeon_pb.ResultStatus_RESULT_STATUS_FAILED,
 		Failure: &pigeon_pb.Failure{Code: code, Detail: detail},
 	}}})
 }
 
-func (h *Host) say(ctx context.Context, body *pigeon_pb.FromPigeon) error {
+// say publishes body on the thread with traceID, the trace_id of the task
+// that caused it ("" when none did).
+func (h *Host) say(ctx context.Context, traceID string, body *pigeon_pb.FromPigeon) error {
 	raw, err := proto.Marshal(body)
 	if err != nil {
 		return err
@@ -158,5 +169,6 @@ func (h *Host) say(ctx context.Context, body *pigeon_pb.FromPigeon) error {
 	return h.Publish(ctx, &coop_pb.PigeonMessage{
 		RunId: h.Run.RunID, ThreadId: h.Run.ThreadID, Direction: coop_pb.Direction_DIRECTION_FROM_PIGEON, Kind: h.Run.Kind,
 		Seq: seq, Body: raw, TenantNamespace: h.Run.Tenant, SentMs: h.now().UnixMilli(),
+		TraceId: traceID,
 	})
 }

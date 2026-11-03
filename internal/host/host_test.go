@@ -5,6 +5,7 @@ package host
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -127,4 +128,81 @@ func TestEndedByTheCoopClosesDone(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("the coop's end message did not close Done")
 	}
+}
+
+// Every message a task causes carries the task's trace_id: the Ready it
+// triggers, its result and each failure.
+func TestTraceIDArrivesOnWhatTheTaskCauses(t *testing.T) {
+	ctx := context.Background()
+	traced := func(m *coop_pb.PigeonMessage) *coop_pb.PigeonMessage { m.TraceId = "t1"; return m }
+	check := func(t *testing.T, sent []*coop_pb.PigeonMessage, want int) {
+		t.Helper()
+		if len(sent) != want {
+			t.Fatalf("want %d messages, got %d: %v", want, len(sent), sent)
+		}
+		for i, m := range sent {
+			if m.GetTraceId() != "t1" {
+				t.Fatalf("message %d dropped the inbound trace_id: %q", i, m.GetTraceId())
+			}
+		}
+	}
+	failed := func(t *testing.T, m *coop_pb.PigeonMessage, code pigeon_pb.FailureCode) {
+		t.Helper()
+		r := from(t, m).GetResult()
+		if r.GetStatus() != pigeon_pb.ResultStatus_RESULT_STATUS_FAILED || r.GetFailure().GetCode() != code {
+			t.Fatalf("want failure %v: %v", code, r)
+		}
+	}
+
+	t.Run("result and the Ready it triggers", func(t *testing.T) {
+		h, sent := newHost()
+		if err := h.OnMessage(ctx, traced(task(t, dog, "echo.ping", []byte("x"))), nil); err != nil {
+			t.Fatal(err)
+		}
+		check(t, *sent, 2)
+		if from(t, (*sent)[0]).GetReady() == nil || from(t, (*sent)[1]).GetResult().GetStatus() != pigeon_pb.ResultStatus_RESULT_STATUS_OK {
+			t.Fatalf("want Ready then an OK Result: %v", *sent)
+		}
+	})
+	t.Run("bad body", func(t *testing.T) {
+		h, sent := newHost()
+		m := traced(task(t, dog, "echo.ping", nil))
+		m.Body = []byte{0xff}
+		if err := h.OnMessage(ctx, m, nil); err != nil {
+			t.Fatal(err)
+		}
+		check(t, *sent, 1)
+		failed(t, (*sent)[0], pigeon_pb.FailureCode_FAILURE_CODE_INVALID_TASK)
+	})
+	t.Run("wrong kind", func(t *testing.T) {
+		h, sent := newHost()
+		if err := h.OnMessage(ctx, traced(task(t, dog, "texas811.file", nil)), nil); err != nil {
+			t.Fatal(err)
+		}
+		check(t, *sent, 2)
+		failed(t, (*sent)[1], pigeon_pb.FailureCode_FAILURE_CODE_INVALID_TASK)
+	})
+	t.Run("kind error", func(t *testing.T) {
+		h, sent := newHost()
+		h.Kinds = map[string]Kind{"echo.ping": func(context.Context, *pigeon_pb.PigeonTask) (*pigeon_pb.PigeonResult, error) {
+			return nil, errors.New("boom")
+		}}
+		if err := h.OnMessage(ctx, traced(task(t, dog, "echo.ping", nil)), nil); err != nil {
+			t.Fatal(err)
+		}
+		check(t, *sent, 2)
+		failed(t, (*sent)[1], pigeon_pb.FailureCode_FAILURE_CODE_SCRIPT_FAILED)
+	})
+	t.Run("startup Ready has none", func(t *testing.T) {
+		h, sent := newHost()
+		if err := h.Ready(ctx); err != nil {
+			t.Fatal(err)
+		}
+		if err := h.OnMessage(ctx, traced(task(t, dog, "echo.ping", []byte("x"))), nil); err != nil {
+			t.Fatal(err)
+		}
+		if len(*sent) != 2 || (*sent)[0].GetTraceId() != "" || (*sent)[1].GetTraceId() != "t1" {
+			t.Fatalf("want an untraced startup Ready, then a result with t1: %v", *sent)
+		}
+	})
 }
