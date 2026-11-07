@@ -1,0 +1,4 @@
+id=20261107T155034Z-8-27831896
+gates=tacplus build && img=$(sed -n "s/^build_image: //p" tacplus.lock) && docker run --rm --memory 4096m --user "$(id -u):$(id -g)" -e HOME=/tmp/h -e GOFLAGS=-buildvcs=false -v "$PWD:$PWD" -w "$PWD" "$img" bash -euo pipefail -c 'go mod tidy && git -c safe.directory="*" diff --exit-code go.mod go.sum && test -z "$(gofmt -l cmd internal)" && go vet ./... && go build ./... && go test ./... && go run golang.org/x/vuln/cmd/govulncheck@v1.9.0 ./...'
+state=queued
+queued=2026-11-07T15:50:34Z
