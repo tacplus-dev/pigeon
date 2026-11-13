@@ -1,6 +1,6 @@
 # State: pigeon
 
-Overwritten to stay current (loopers and agents). Last updated: 2026-11-08 by looper (#9).
+Overwritten to stay current (loopers and agents). Last updated: 2026-11-13 by looper (#2).
 
 - **Version / line:** v0.1.1 (the 0.1 line; its image is #2); tacplus floor 2.6 (#8; coop declares 2.6), the build
   pinned by `tacplus.lock` to tacplus 2.6.1 and its `build:2.6.1` image by digest
@@ -11,4 +11,4 @@ Overwritten to stay current (loopers and agents). Last updated: 2026-11-08 by lo
 - **Released / deployed:** tagged (v0.1.0, v0.1.1); no image published yet (#2).
 - **Known gaps:** none in this repository. The looper's `tacplus` wrapper runs the pinned release, in its line's
   `build:2.6` image; the Go gates run in the lock's `build_image`. Building main in tacplus-dev/build from the pin is #9.
-- **Blocked on:** #2 on tacplus-dev/looper#12.
+- **Blocked on:** #2 (the release image) on tacplus-dev/looper#115: a report's token cannot push `.github/workflows/`, so its `release.yml` waits; its scripts are `ci/` (`go test ./ci/`).
