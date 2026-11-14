@@ -10,3 +10,4 @@ Append-only: add entries at the end, never edit or remove one (CI enforces it). 
 - 2026-11-08 looper issue tacplus floor 2.5 is behind the latest released line (2.6): move the floor to 2.6 and commit tacplus.lock (#8, 7ddb081)
 - 2026-11-08 looper issue Pin the build: floor 2.6 and a committed tacplus.lock, so the build pipeline and its security checks run on this repository (#9, 7604a0d)
 - 2026-11-14 looper release v0.1.3 (https://github.com/tacplus-dev/pigeon/releases/tag/v0.1.3)
+- 2026-11-14 looper issue STATE.md's Blocked on names a closed issue (tacplus-dev/looper#12): rewrite it to name what blocks #2 now (tacplus-dev/looper#115) (#11, 93f3f92)
