@@ -12,3 +12,4 @@ Append-only: add entries at the end, never edit or remove one (CI enforces it). 
 - 2026-11-14 looper release v0.1.3 (https://github.com/tacplus-dev/pigeon/releases/tag/v0.1.3)
 - 2026-11-14 looper issue STATE.md's Blocked on names a closed issue (tacplus-dev/looper#12): rewrite it to name what blocks #2 now (tacplus-dev/looper#115) (#11, 93f3f92)
 - 2026-11-15 looper issue Release: tag vMAJOR.MINOR.PATCH (start at v0.1.0) and publish its image (#2, 59b9f0e)
+- 2026-11-15 looper release v0.1.4 (https://github.com/tacplus-dev/pigeon/releases/tag/v0.1.4)
