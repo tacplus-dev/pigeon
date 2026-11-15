@@ -1,0 +1,151 @@
+name: release
+
+# On a version tag vX.Y.Z: run the gates on the tag in the build image its tacplus.lock pins, publish
+# ghcr.io/tacplus-dev/pigeon:X.Y.Z, move the line tag X.Y when this is the line's highest release
+# (ci/release-tags.sh), and create the GitHub release with the binaries and the commits since the previous
+# release (ci/release-notes.sh), never marking an older line Latest (ci/release-latest.sh). A pre-release
+# (vX.Y.Z-rc.N) publishes only its own tag. Fleets pin X.Y (tacplus-dev/tacplus#180). Modelled on
+# tacplus-dev/llmproxy's; tacplus-dev/roadmap decisions/ci-on-gitlab-2026-10-27.md, the 2026-11-07 addendum.
+#
+# workflow_dispatch releases a tag that already exists, built from the tag as it is, with this workflow's
+# scripts (v0.1.0 was tagged before this workflow): publish: true publishes it as a tag push would. Without
+# publish it is a dry run: it builds the tag (or, for a version not tagged yet, this commit tagged locally as
+# it) and prints the image tags and notes that release would get, and publishes nothing. The
+# repository_dispatch event "release" is the same, with the inputs in client_payload: a looper's token can
+# send it (contents: write) but not a workflow_dispatch (actions: write).
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Version, e.g. v0.1.0: an existing tag to publish, or any version to dry-run"
+        required: true
+      publish:
+        description: "Publish the existing tag (image, line tag, GitHub release); unchecked is a dry run"
+        type: boolean
+        default: false
+  repository_dispatch:
+    types: [release]
+
+permissions:
+  contents: read
+
+# One release at a time, so of two tags on one line the later run sees the other before it moves X.Y.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}
+  VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.event_name == 'repository_dispatch' && github.event.client_payload.tag || github.ref_name }}
+  PUBLISH: ${{ github.event_name == 'push' || inputs.publish == true || github.event.client_payload.publish == true || github.event.client_payload.publish == 'true' }}
+  # The platforms the image is built for: arm64, what the fleets run on. amd64 is off, as in the fleets
+  # (fleet-seatrials images/pins.yaml `platforms`); "arm64 amd64" builds both, one multi-arch image.
+  PLATFORMS: arm64
+  # The launcher every service image runs under (Dockerfile), built from source at this commit.
+  LAUNCHER_COMMIT: c54ae30e7aa928d166beb423ddcb896a270d80be
+
+jobs:
+  release:
+    # arm64, like the platform built by default and the build pipeline's runners: the gates, the launcher and
+    # the image's apk add run natively; amd64, when on, runs under QEMU.
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Every tag: the line tag and the notes depend on the releases already made.
+          fetch-depth: 0
+      - name: Tags and notes
+        id: plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --force --tags origin
+          if git rev-parse -q --verify "refs/tags/$VERSION" >/dev/null; then
+            commit="$(git rev-parse "$VERSION^{commit}")"
+          elif [[ $PUBLISH == true ]]; then
+            echo "no tag $VERSION: tag it (a pushed vX.Y.Z tag runs this release by itself)"; exit 1
+          else
+            git tag "$VERSION"
+            commit="$GITHUB_SHA"
+          fi
+          tags="$(ci/release-tags.sh "$VERSION")"
+          flag="$(ci/release-latest.sh "$VERSION")"
+          ci/release-notes.sh "$VERSION" > "$RUNNER_TEMP/notes.md"
+          { echo "commit=$commit"; echo "tags=$tags"; echo "flag=$flag"; } >> "$GITHUB_OUTPUT"
+          echo "publish: $PUBLISH"
+          echo "source: $commit"
+          echo "image tags: $(for t in $tags; do printf '%s:%s ' "$IMAGE" "$t"; done)"
+          echo "platforms: $PLATFORMS"
+          echo "release: $flag"
+          cat "$RUNNER_TEMP/notes.md"
+      # The tag as it is, beside this workflow's scripts.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.plan.outputs.commit }}
+          path: src
+      - name: Gates and pigeonhost, in the pinned build image
+        run: |
+          # shellcheck disable=SC2086 # the platforms are words
+          ci/in-build-image.sh src "$GITHUB_WORKSPACE/ci/release-build.sh" "$GITHUB_WORKSPACE/out" $PLATFORMS
+      - uses: actions/checkout@v4
+        with:
+          repository: tacplus-dev/launcher
+          ref: ${{ env.LAUNCHER_COMMIT }}
+          path: launcher-src
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: launcher-src/go.mod
+          cache: false
+      - name: launcher
+        working-directory: launcher-src
+        run: |
+          for arch in $PLATFORMS; do
+            CGO_ENABLED=0 GOOS=linux GOARCH=$arch go build -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/out/launcher-linux-$arch" .
+          done
+      # The Dockerfile's apk add runs on each target platform.
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        if: env.PUBLISH == 'true'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Image
+        env:
+          COMMIT: ${{ steps.plan.outputs.commit }}
+          TAGS: ${{ steps.plan.outputs.tags }}
+        run: |
+          tags=""
+          [[ $PUBLISH == true ]] && tags="$TAGS"
+          # shellcheck disable=SC2086 # the tags are words
+          ci/release-image.sh src out "${VERSION#v}" "$COMMIT" $tags
+          [[ $PUBLISH == true ]] || exit 0
+          for t in $tags; do docker buildx imagetools inspect "$IMAGE:$t"; done
+      - name: GitHub release
+        if: env.PUBLISH == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FLAG: ${{ steps.plan.outputs.flag }}
+        run: |
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "the GitHub release $VERSION exists already: left as it is"; exit 0
+          fi
+          (cd out && sha256sum pigeonhost-linux-* > SHA256SUMS)
+          gh release create "$VERSION" --verify-tag --title "$VERSION" --notes-file "$RUNNER_TEMP/notes.md" \
+            "$FLAG" out/pigeonhost-linux-* out/SHA256SUMS
+      # Fleets and clusters pull with no credential, so the package must be public (the repository is).
+      - name: Pulls need no credential
+        if: env.PUBLISH == 'true'
+        run: |
+          docker logout ghcr.io
+          if ! docker buildx imagetools inspect "$IMAGE:${VERSION#v}" >/dev/null; then
+            echo "::error::$IMAGE is not public: set the package's visibility to public (github.com/orgs/tacplus-dev/packages/container/pigeon/settings)"
+            exit 1
+          fi
