@@ -13,3 +13,4 @@ Append-only: add entries at the end, never edit or remove one (CI enforces it). 
 - 2026-11-14 looper issue STATE.md's Blocked on names a closed issue (tacplus-dev/looper#12): rewrite it to name what blocks #2 now (tacplus-dev/looper#115) (#11, 93f3f92)
 - 2026-11-15 looper issue Release: tag vMAJOR.MINOR.PATCH (start at v0.1.0) and publish its image (#2, 59b9f0e)
 - 2026-11-15 looper release v0.1.4 (https://github.com/tacplus-dev/pigeon/releases/tag/v0.1.4)
+- 2026-11-15 looper issue Pinned build image build:2.6.1 ships go1.27.3, vulnerable to GO-2026-6859 (net/http): pin tacplus 2.6.8 (go1.27.4) (#10, 2fb48ce)
