@@ -154,6 +154,26 @@ func TestReleaseNotes(t *testing.T) {
 	}
 }
 
+// The release image upgrades the packages its base already has before it adds its own, so a release
+// picks up its Alpine line's security fixes without waiting for a new base image (#13).
+func TestDockerfileUpgradesBase(t *testing.T) {
+	dockerfile, err := os.ReadFile("../Dockerfile")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, line := range strings.Split(string(dockerfile), "\n") {
+		if !strings.HasPrefix(line, "RUN ") || !strings.Contains(line, "apk add") {
+			continue
+		}
+		upgrade := strings.Index(line, "apk upgrade --no-cache")
+		if upgrade < 0 || upgrade > strings.Index(line, "apk add") {
+			t.Errorf("Dockerfile: %q adds packages without first running apk upgrade --no-cache", line)
+		}
+		return
+	}
+	t.Error("Dockerfile: no RUN line adds packages")
+}
+
 func TestBuildImage(t *testing.T) {
 	const pinned = "ghcr.io/tacplus-dev/tacplus/build:2.6.1@sha256:91f42995e0e3d6f959a7f75177caf94b2aded90fc36c8492dbcd320ca0d187f5"
 	for _, tc := range []struct {

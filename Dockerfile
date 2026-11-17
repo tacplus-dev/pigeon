@@ -12,7 +12,9 @@ LABEL org.opencontainers.image.title="pigeonhost" \
       org.opencontainers.image.revision="${VCS_REF}" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.source="https://github.com/tacplus-dev/pigeon"
-RUN apk add --no-cache ca-certificates && adduser -D -u 65532 app
+# Upgrade the base's own packages first, so each release carries its Alpine line's security fixes
+# without waiting for a new base image (#13: zlib CVE-2026-4738).
+RUN apk upgrade --no-cache && apk add --no-cache ca-certificates && adduser -D -u 65532 app
 COPY bin/pigeonhost /usr/local/bin/pigeonhost
 USER 65532
 # Every service runs under the launcher (github.com/tacplus-dev/launcher): PID 1
