@@ -44,8 +44,9 @@ env:
   # The platforms the image is built for: arm64, what the fleets run on. amd64 is off, as in the fleets
   # (fleet-seatrials images/pins.yaml `platforms`); "arm64 amd64" builds both, one multi-arch image.
   PLATFORMS: arm64
-  # The launcher every service image runs under (Dockerfile), built from source at this commit.
-  LAUNCHER_COMMIT: c54ae30e7aa928d166beb423ddcb896a270d80be
+  # The launcher every service image runs under (Dockerfile), built from source at this commit: launcher
+  # v0.1.0, whose go.mod toolchain go1.27.4 has the fix for GO-2026-6859 (#12).
+  LAUNCHER_COMMIT: 0e139cac8c43e9c98508052337d147eee0e8d493
 
 jobs:
   release:
