@@ -1,0 +1,7 @@
+# The security findings pigeon accepts (README: Security checks). Each entry needs id,
+# reason, decided_by and expires (YYYY-MM-DD); an expired one fails the policy until it is reviewed.
+exceptions:
+  - id: DS-0026
+    reason: "trivy DS-0026 (No HEALTHCHECK defined), rule-wide for this repository's Dockerfiles: Docker's HEALTHCHECK does nothing for our images. Kubernetes runs them (each pigeon a Job) and ignores it; health comes from the operator's liveness/readiness probes, and the image's PID 1, the launcher, watches the child's gRPC health itself (HEALTH_PORT). Non-blocking (LOW), so no gate is bypassed (#14)."
+    decided_by: jodydadescott (hub)
+    expires: 2027-05-17
