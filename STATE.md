@@ -1,6 +1,6 @@
 # State: pigeon
 
-Overwritten to stay current (loopers and agents). Last updated: 2026-11-17 by looper (#13).
+Overwritten to stay current (loopers and agents). Last updated: 2026-11-17 by looper (#12).
 
 - **Version / line:** v0.1.4 (the 0.1 line), its image `ghcr.io/tacplus-dev/pigeon:0.1.4`, which the line tag `:0.1`
   names (linux/arm64; #2); tacplus floor 2.6 (#8; coop declares 2.6), the build pinned by `tacplus.lock` to tacplus
@@ -15,6 +15,9 @@ Overwritten to stay current (loopers and agents). Last updated: 2026-11-17 by lo
   release with the binaries; its scripts are `ci/` (`go test ./ci/`). The package is public: pulls need no credential.
   The image runs `apk upgrade --no-cache` before its `apk add`, so each release carries its Alpine line's
   security fixes (zlib 1.4-r0 for CVE-2026-4738, which v0.1.4's image lacks; #13, to ship as v0.1.5).
+  The image's launcher is built from launcher v0.1.0 (`LAUNCHER_COMMIT` 0e139ca, go1.27.4, fixing GO-2026-6859, which
+  the launcher of v0.1.5 and earlier images has; its health probe verifies the child's certificate; #12, to ship as
+  v0.1.6).
 - **Released / deployed:** v0.1.1 to v0.1.3 are published (image and GitHub release, linux/arm64); v0.1.4 (#10, the
   tacplus 2.6.13 pin) is tagged, its release workflow publishing it as Latest and `:0.1`. v0.1.0 is tagged with no
   image: its tree predates `tacplus.lock`, and the floor's `build:2.5` image has no `tacplus` on the PATH of the
