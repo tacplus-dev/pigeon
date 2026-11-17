@@ -17,3 +17,4 @@ Append-only: add entries at the end, never edit or remove one (CI enforces it). 
 - 2026-11-17 looper issue New LOW finding in the nightly security report: trivy DS-0026 (no HEALTHCHECK in Dockerfile) (#14)
 - 2026-11-17 looper issue Release image keeps the base's vulnerable zlib 1.3.2-r1 (CVE-2026-4738): the Dockerfile never runs apk upgrade (#13)
 - 2026-11-17 looper release v0.1.6 (https://github.com/tacplus-dev/pigeon/releases/tag/v0.1.6)
+- 2026-11-17 looper issue Release image's launcher is built with go1.27.3 (GO-2026-6859): LAUNCHER_COMMIT c54ae30 predates launcher's go1.27.4 toolchain; move it to launcher v0.1.0 (#12)
