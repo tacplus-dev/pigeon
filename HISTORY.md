@@ -14,3 +14,4 @@ Append-only: add entries at the end, never edit or remove one (CI enforces it). 
 - 2026-11-15 looper issue Release: tag vMAJOR.MINOR.PATCH (start at v0.1.0) and publish its image (#2, 59b9f0e)
 - 2026-11-15 looper release v0.1.4 (https://github.com/tacplus-dev/pigeon/releases/tag/v0.1.4)
 - 2026-11-15 looper issue Pinned build image build:2.6.1 ships go1.27.3, vulnerable to GO-2026-6859 (net/http): pin tacplus 2.6.8 (go1.27.4) (#10, 2fb48ce)
+- 2026-11-17 looper issue New LOW finding in the nightly security report: trivy DS-0026 (no HEALTHCHECK in Dockerfile) (#14)
