@@ -21,3 +21,4 @@ Append-only: add entries at the end, never edit or remove one (CI enforces it). 
 - 2026-11-20 looper release v0.1.7 (https://github.com/tacplus-dev/pigeon/releases/tag/v0.1.7)
 - 2026-11-20 looper issue Release image v0.1.6 ships openssl 3.5.9-r0 (CVE-2026-107496, -88822, -88823, -95691, -95692): Alpine 3.24 has 3.5.9-r1; cut v0.1.7 to rebuild (#15)
 - 2026-11-23 looper release v0.1.8 (https://github.com/tacplus-dev/pigeon/releases/tag/v0.1.8)
+- 2026-11-23 looper issue Pinned images behind their lines: relock (tacplus.lock: tacplus 2.6.13 → 2.6.14, and 1 more) (#16)
