@@ -3,7 +3,10 @@
 #
 # Release image: the pre-built static pigeon binary on a minimal base. The binary
 # is built by the fleet's image pipeline against the fleet's merged protos.
-ARG BASE_IMAGE=alpine:3.24
+#
+# The base is pinned by digest, never a floating tag, so a rebuild of the same commit ships the base it was
+# gated and scanned on (#17); the nightly maintenance moves the digest (alpine:3.24 at 3.24.4 on 2026-11-24).
+ARG BASE_IMAGE=alpine:3.24.4@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf
 FROM ${BASE_IMAGE}
 ARG VERSION=0.0.0
 ARG VCS_REF=local

@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -172,6 +173,47 @@ func TestDockerfileUpgradesBase(t *testing.T) {
 		return
 	}
 	t.Error("Dockerfile: no RUN line adds packages")
+}
+
+// Every base the release image builds from is pinned by digest, so a rebuild of the same commit ships the
+// base it was gated and scanned on, not whatever its tag names that day (#17; tacplus-dev/roadmap
+// decisions/security-gates-ship-only-2026-11-23.md, point 2). An ARG in a FROM is read at its default.
+func TestDockerfileBasesPinnedByDigest(t *testing.T) {
+	dockerfile, err := os.ReadFile("../Dockerfile")
+	if err != nil {
+		t.Fatal(err)
+	}
+	digest := regexp.MustCompile(`^[^@\s]+:[^@\s]+@sha256:[0-9a-f]{64}$`)
+	args := map[string]string{}
+	froms := 0
+	for _, line := range strings.Split(string(dockerfile), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) < 2 {
+			continue
+		}
+		switch strings.ToUpper(fields[0]) {
+		case "ARG":
+			if name, value, ok := strings.Cut(fields[1], "="); ok {
+				args[name] = value
+			}
+		case "FROM":
+			froms++
+			image := ""
+			for _, field := range fields[1:] {
+				if !strings.HasPrefix(field, "--") {
+					image = field
+					break
+				}
+			}
+			image = os.Expand(image, func(name string) string { return args[name] })
+			if !digest.MatchString(image) {
+				t.Errorf("Dockerfile: %q builds from %q, not <image>:<tag>@sha256:<digest>", line, image)
+			}
+		}
+	}
+	if froms == 0 {
+		t.Error("Dockerfile: no FROM line")
+	}
 }
 
 func TestBuildImage(t *testing.T) {
