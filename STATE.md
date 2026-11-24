@@ -1,6 +1,6 @@
 # State: pigeon
 
-Overwritten to stay current (loopers and agents). Last updated: 2026-11-23 by looper (#16).
+Overwritten to stay current (loopers and agents). Last updated: 2026-11-24 by looper (#17).
 
 - **Version / line:** v0.1.8 (the 0.1 line), its image `ghcr.io/tacplus-dev/pigeon:0.1.8`, which the line tag `:0.1`
   names (linux/arm64; #2); tacplus floor 2.6 (#8; coop declares 2.6), the build pinned by `tacplus.lock` to tacplus
@@ -19,6 +19,9 @@ Overwritten to stay current (loopers and agents). Last updated: 2026-11-23 by lo
   v0.1.6). v0.1.7 is v0.1.6's tree rebuilt for openssl 3.5.9-r1 (libssl3, libcrypto3: CVE-2026-107496, -88822,
   -88823, -95691, -95692, which v0.1.6's image has; #15): trivy 0.76.1 finds no vulnerability in its image.
   v0.1.8 is v0.1.7's tree built and gated on the tacplus 2.6.14 pin (#16).
+  On main (unreleased; v0.1.9 is its patch, #17) the image's base is pinned by digest, `alpine:3.24.4@sha256:f59abe65…`
+  (`BASE_IMAGE`; `TestDockerfileBasesPinnedByDigest` fails on any `FROM` without one), so a rebuild ships the base it
+  was gated on; the nightly maintenance moves the digest (tacplus-dev/looper#234).
 - **Released / deployed:** v0.1.1 to v0.1.3 are published (image and GitHub release, linux/arm64); v0.1.4 (#10, the
   tacplus 2.6.13 pin) and v0.1.5 (#13) are published; v0.1.6 (#12, launcher v0.1.0) is published; v0.1.7
   (#15, openssl 3.5.9-r1) is published; v0.1.8 (#16, the tacplus 2.6.14 pin) is published as Latest and `:0.1`. v0.1.0 is tagged with no image: its tree predates
