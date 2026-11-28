@@ -23,3 +23,4 @@ Append-only: add entries at the end, never edit or remove one (CI enforces it). 
 - 2026-11-23 looper release v0.1.8 (https://github.com/tacplus-dev/pigeon/releases/tag/v0.1.8)
 - 2026-11-23 looper issue Pinned images behind their lines: relock (tacplus.lock: tacplus 2.6.13 → 2.6.14, and 1 more) (#16)
 - 2026-11-24 looper issue Release image base pinned by digest, not the floating tag (#17)
+- 2026-11-28 looper issue Pinned images behind their lines: relock (tacplus.lock: tacplus 2.6.14 → 2.6.16, and 1 more) (#19)
